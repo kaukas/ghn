@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-DIR="$(dirname "$(greadlink -f "$0")")"
+GHN_DIR="$(dirname "$(greadlink -f "$0")")"
+TMP_FILE=$(mktemp)
+# Remove the temporary file on exit.
+trap "rm $TMP_FILE" 0
 
 function fetch_events() {
   # cat /tmp/all-notifications |
@@ -17,29 +20,44 @@ function fetch_events() {
        .repository.owner.login,
        .repository.name,
        .subject.title
-      ] | join("|")'
+      ] | join("|")' |
+    tee "$TMP_FILE"
 }
 
 function events_for_fzf() {
-  sort -t'|' -k4,4 -k2,2 -r |
-    awk -F '|' -f $DIR/notifications-for-fzf.awk
+  fetch_events |
+    sort -t'|' -k4,4 -k2,2 -r |
+    awk -F '|' -f $GHN_DIR/notifications-for-fzf.awk
 }
 
-events=$(fetch_events)
+function event_endpoint() {
+  event_id=$(
+    awk '{ printf substr($1, 2, 999) }' <<<$2
+  )
+  cat $1 |
+    awk -F '|' -v event_id=$event_id '$1 ~ "/" event_id "$" { print $1 }'
+}
+export -f event_endpoint
+
+function event_preview() {
+  endpoint=$(event_endpoint $1 $2)
+  hub api "$endpoint" |
+    jq -r '.body'
+}
+export -f event_preview
 
 event_id=$(
-  echo "$events" |
-    events_for_fzf |
-    fzf --reverse --ansi |
-    awk '{ printf substr($1, 2, 999) }'
-)
-
-event_endpoint=$(
-  awk -F '|' -v event_id=$event_id '$1 ~ "/" event_id "$" { print $1 }' <<<$events
+  events_for_fzf |
+    fzf --reverse --ansi \
+      --preview="event_preview $TMP_FILE {}" \
+      --preview-window=:wrap:hidden \
+      --header "ctrl-p toggles preview" \
+      --bind="ctrl-p:toggle-preview"
 )
 
 event_html_url=$(
-  hub api "$event_endpoint" |
+  event_endpoint $TMP_FILE $event_id |
+    xargs hub api |
     jq -r '.html_url'
 )
 
