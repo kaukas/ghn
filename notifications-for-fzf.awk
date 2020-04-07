@@ -24,6 +24,9 @@ function format_owner_repo(owner, repo, max_len) {
 }
 
 {
+  # Will be hidden.
+  printf "%s ", $1
+
   url_parts_size = split($1, url, "/")
   id = "#" url[url_parts_size]
   printf green("%7s "), id
