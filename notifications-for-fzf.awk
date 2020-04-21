@@ -1,11 +1,3 @@
-function green(s) {
-  return "\033[0;32m" s "\033[0m"
-}
-
-function blue(s) {
-  return "\033[0;34m" s "\033[0m"
-}
-
 function format_owner_repo(owner, repo, max_len) {
   owner_min_len = 5
   total_length = length(owner "/" repo)
@@ -26,6 +18,15 @@ function format_owner_repo(owner, repo, max_len) {
 {
   # Will be hidden.
   printf "%s ", $1
+  printf "%s ", $3
+
+  printf "%-26s ", format_owner_repo($6, $7, 15)
+
+  if ($3 == "PullRequest") {
+    printf "⤽ "
+  } else if ($3 == "Issue") {
+    printf "ⓘ "
+  }
 
   url_parts_size = split($1, url, "/")
   id = "#" url[url_parts_size]
@@ -37,14 +38,7 @@ function format_owner_repo(owner, repo, max_len) {
     printf "  "
   }
 
-  if ($3 == "PullRequest") {
-    printf "⤽ "
-  } else if ($3 == "Issue") {
-    printf "ⓘ "
-  }
-
-  printf "%-27s ", format_owner_repo($6, $7, 15)
-  printf blue("@%s  "), $5
+  printf blue("@%s "), $5
   printf "%s ", $8
 
   printf "\n"

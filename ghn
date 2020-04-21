@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-GHN_DIR="$(dirname "$(greadlink -f "$0")")"
+GHN_DIR="${GHN_DIR:-$(dirname "$(greadlink -f "$0")")}"
 
 function fetch_events() {
-  # cat /tmp/all-notifications |
-  hub api notifications --obey-ratelimit -XGET --field all=true |
+  hub api notifications -XGET --field all=true |
     jq -r '
     .[] |
       [.subject.url,
@@ -23,33 +22,57 @@ function fetch_events() {
 function events_for_fzf() {
   fetch_events |
     sort -t'|' -k4,4 -k2,2 -r |
-    awk -F '|' -f $GHN_DIR/notifications-for-fzf.awk
+    awk -F '|' -f $GHN_DIR/common.awk -f $GHN_DIR/notifications-for-fzf.awk
 }
 
-function event_endpoint() {
-  awk '{ printf $1 }' <<<$1
+function preview_issue() {
+  url=$(
+    sed \
+      -e 's|//api\.github\.com/repos/|//github.com/|' \
+    <<<$endpoint
+  )
+  hub api graphql --flat --field query=@$GHN_DIR/issue.graphql --field url=$url |
+    awk -f $GHN_DIR/common.awk -f $GHN_DIR/issue-details.awk |
+    fold -s -w $FZF_PREVIEW_COLUMNS
 }
-export -f event_endpoint
+export -f preview_issue
+
+function preview_pr() {
+  url=$(
+    sed \
+      -e 's|//api\.github\.com/repos/|//github.com/|' \
+      -e 's|/pulls/|/pull/|' \
+    <<<$endpoint
+  )
+  hub api graphql --flat --field query=@$GHN_DIR/pullrequest.graphql --field url=$url |
+    awk -f $GHN_DIR/common.awk -f $GHN_DIR/pullrequest-details.awk |
+    fold -s -w $FZF_PREVIEW_COLUMNS
+}
+export -f preview_pr
 
 function event_preview() {
-  endpoint=$(event_endpoint $1)
-  hub api "$endpoint" |
-    jq -r '.body'
+  endpoint=$(cut -d ' ' -f 1 <<<$1)
+  etype=$(cut -d ' ' -f 2 <<<$1)
+  if [ $etype = "Issue" ]; then
+    preview_issue
+  else
+    preview_pr
+  fi
 }
 export -f event_preview
 
 event_line=$(
   events_for_fzf |
     fzf --reverse --ansi \
-      --with-nth 2.. \
-      --preview="event_preview {}" \
+      --with-nth 3.. \
+      --preview="GHN_DIR=$GHN_DIR event_preview {}" \
       --preview-window=:wrap:hidden \
       --header "ctrl-p toggles preview" \
-      --bind="ctrl-p:toggle-preview"
+      --bind="ctrl-p:toggle-preview,shift-up:preview-up,shift-down:preview-down"
 )
 
 event_html_url=$(
-  event_endpoint $event_line |
+  cut -d ' ' -f 1 <<<$event_line |
     xargs hub api |
     jq -r '.html_url'
 )

@@ -1,0 +1,27 @@
+query Issue($url: URI!) {
+  resource(url: $url) {
+    ... on Issue {
+      state
+      number
+      title
+      author {
+        login
+      }
+      body
+      comments(first: 20) {
+        nodes {
+          author {
+            login
+          }
+          body
+          updatedAt
+          reactions(first: 10) {
+            nodes {
+              content
+            }
+          }
+        }
+      }
+    }
+  }
+}

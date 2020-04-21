@@ -1,0 +1,23 @@
+query PullRequest($url: URI!) {
+  resource(url: $url) {
+    ... on PullRequest {
+      state
+      number
+      title
+      updatedAt
+      repository {
+        nameWithOwner
+      }
+      id
+      headRepository {
+        nameWithOwner
+      }
+      headRefName
+      baseRepository {
+        nameWithOwner
+      }
+      baseRefName
+      body
+    }
+  }
+}
