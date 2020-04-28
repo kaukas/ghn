@@ -23,7 +23,7 @@ function format_owner_repo(owner, repo, max_len) {
   printf "%-26s ", format_owner_repo($6, $7, 15)
 
   if ($3 == "PullRequest") {
-    printf "⤽ "
+    printf "↰ "
   } else if ($3 == "Issue") {
     printf "ⓘ "
   }

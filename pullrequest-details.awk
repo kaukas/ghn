@@ -2,11 +2,11 @@
   $1 = ""
   state = substr($0, 2)
   if (state == "OPEN") {
-    printf colored("white", "green", " ⤽ open ")
+    printf colored("white", "green", " ↰ open ")
   } else if (state == "CLOSED") {
-    printf colored("white", "red", " ⤽ closed ")
+    printf colored("white", "red", " ↰ closed ")
   } else if (state == "MERGED") {
-    printf colored("white", "magenta", " ⤽ merged ")
+    printf colored("white", "magenta", " ↰ merged ")
   }
 }
 
