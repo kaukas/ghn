@@ -2,7 +2,13 @@
 
 set -euo pipefail
 
-GHN_DIR="${GHN_DIR:-$(dirname "$(greadlink -f "$0")")}"
+function find_lib_dir() {
+  ghn_bin=$(greadlink -f "$0")
+  cd $(dirname $ghn_bin)/../libexec
+  echo $(pwd)
+}
+
+GHN_LIB_DIR="${GHN_LIB_DIR:-$(find_lib_dir)}"
 GHN_CONFIG=~/.config/ghn/config.sh
 GHN_OPEN_CMD=open
 
@@ -28,7 +34,7 @@ function fetch_events() {
 function events_for_fzf() {
   fetch_events |
     sort -t'|' -k4,4 -k2,2 -r |
-    awk -F '|' -f $GHN_DIR/common.awk -f $GHN_DIR/notifications-for-fzf.awk
+    awk -F '|' -f $GHN_LIB_DIR/common.awk -f $GHN_LIB_DIR/notifications-for-fzf.awk
 }
 
 function html_url() {
@@ -41,16 +47,16 @@ export -f html_url
 
 function preview_issue() {
   url=$(html_url $endpoint)
-  hub api graphql --flat --field query=@$GHN_DIR/issue.graphql --field url=$url |
-    awk -f $GHN_DIR/common.awk -f $GHN_DIR/issue-details.awk |
+  hub api graphql --flat --field query=@$GHN_LIB_DIR/issue.graphql --field url=$url |
+    awk -f $GHN_LIB_DIR/common.awk -f $GHN_LIB_DIR/issue-details.awk |
     fold -s -w $FZF_PREVIEW_COLUMNS
 }
 export -f preview_issue
 
 function preview_pr() {
   url=$(html_url $endpoint)
-  hub api graphql --flat --field query=@$GHN_DIR/pullrequest.graphql --field url=$url |
-    awk -f $GHN_DIR/common.awk -f $GHN_DIR/pullrequest-details.awk |
+  hub api graphql --flat --field query=@$GHN_LIB_DIR/pullrequest.graphql --field url=$url |
+    awk -f $GHN_LIB_DIR/common.awk -f $GHN_LIB_DIR/pullrequest-details.awk |
     fold -s -w $FZF_PREVIEW_COLUMNS
 }
 export -f preview_pr
@@ -70,7 +76,7 @@ event_line=$(
   events_for_fzf |
     fzf --reverse --ansi \
       --with-nth 3.. \
-      --preview="GHN_DIR=$GHN_DIR event_preview {}" \
+      --preview="GHN_LIB_DIR=$GHN_LIB_DIR event_preview {}" \
       --preview-window=:wrap:hidden \
       --header "ctrl-p toggles preview" \
       --bind="ctrl-p:toggle-preview,shift-up:preview-up,shift-down:preview-down"
