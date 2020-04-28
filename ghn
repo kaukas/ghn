@@ -3,6 +3,12 @@
 set -euo pipefail
 
 GHN_DIR="${GHN_DIR:-$(dirname "$(greadlink -f "$0")")}"
+GHN_CONFIG=~/.config/ghn/config.sh
+GHN_OPEN_CMD=open
+
+if [ -r $GHN_CONFIG ]; then
+  source $GHN_CONFIG
+fi
 
 function fetch_events() {
   hub api notifications -XGET --field all=true |
@@ -72,4 +78,4 @@ event_line=$(
 
 event_html_url=$(html_url $(cut -d ' ' -f 1 <<<$event_line))
 
-firefox-container --name Work "$event_html_url"
+$GHN_OPEN_CMD "$event_html_url"
