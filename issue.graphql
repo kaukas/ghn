@@ -8,20 +8,6 @@ query Issue($url: URI!) {
         login
       }
       body
-      comments(first: 20) {
-        nodes {
-          author {
-            login
-          }
-          body
-          updatedAt
-          reactions(first: 10) {
-            nodes {
-              content
-            }
-          }
-        }
-      }
     }
   }
 }

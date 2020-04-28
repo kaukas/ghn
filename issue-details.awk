@@ -16,5 +16,5 @@
   body = substr($0, 2)
   gsub("\\\\n", "\n", body)
   print ""
-  printf body
+  print body
 }
