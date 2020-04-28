@@ -25,12 +25,16 @@ function events_for_fzf() {
     awk -F '|' -f $GHN_DIR/common.awk -f $GHN_DIR/notifications-for-fzf.awk
 }
 
+function html_url() {
+  sed \
+    -e 's|//api\.github\.com/repos/|//github.com/|' \
+    -e 's|/pulls/|/pull/|' \
+    <<<$1
+}
+export -f html_url
+
 function preview_issue() {
-  url=$(
-    sed \
-      -e 's|//api\.github\.com/repos/|//github.com/|' \
-    <<<$endpoint
-  )
+  url=$(html_url $endpoint)
   hub api graphql --flat --field query=@$GHN_DIR/issue.graphql --field url=$url |
     awk -f $GHN_DIR/common.awk -f $GHN_DIR/issue-details.awk |
     fold -s -w $FZF_PREVIEW_COLUMNS
@@ -38,12 +42,7 @@ function preview_issue() {
 export -f preview_issue
 
 function preview_pr() {
-  url=$(
-    sed \
-      -e 's|//api\.github\.com/repos/|//github.com/|' \
-      -e 's|/pulls/|/pull/|' \
-    <<<$endpoint
-  )
+  url=$(html_url $endpoint)
   hub api graphql --flat --field query=@$GHN_DIR/pullrequest.graphql --field url=$url |
     awk -f $GHN_DIR/common.awk -f $GHN_DIR/pullrequest-details.awk |
     fold -s -w $FZF_PREVIEW_COLUMNS
@@ -71,10 +70,6 @@ event_line=$(
       --bind="ctrl-p:toggle-preview,shift-up:preview-up,shift-down:preview-down"
 )
 
-event_html_url=$(
-  cut -d ' ' -f 1 <<<$event_line |
-    xargs hub api |
-    jq -r '.html_url'
-)
+event_html_url=$(html_url $(cut -d ' ' -f 1 <<<$event_line))
 
 firefox-container --name Work "$event_html_url"
